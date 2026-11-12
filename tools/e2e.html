@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>E2E</title>
+  </head>
+  <body style="background: #111; color: #ddd; font: 12px monospace">
+    <pre id="out">START</pre>
+    <script type="module">
+      import { createVoiceChain } from '../src/audio/chain.js';
+
+      const out = document.getElementById('out');
+      const log = (s) => {
+        out.textContent += '\n' + s;
+      };
+      window.addEventListener('error', (e) =>
+        log('WINDOW_ERROR ' + e.message + ' @' + e.filename + ':' + e.lineno),
+      );
+      window.addEventListener('unhandledrejection', (e) =>
+        log('REJECTION ' + ((e.reason && (e.reason.stack || e.reason.message)) || e.reason)),
+      );
+
+      const SR = 48000;
+
+      async function render(params, seconds) {
+        const off = new OfflineAudioContext(2, Math.ceil(SR * seconds), SR);
+        const chain = await createVoiceChain(off, params, { offline: true });
+        const buf = off.createBuffer(1, SR * 3, SR);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = 0.3 * Math.sin((2 * Math.PI * 220 * i) / SR);
+        const src = off.createBufferSource();
+        src.buffer = buf;
+        src.connect(chain.input);
+        src.start();
+        return off.startRendering();
+      }
+
+      function stats(buffer, from, to) {
+        const ch = buffer.getChannelData(0);
+        const ch2 = buffer.getChannelData(1);
+        let sum = 0;
+        let nan = 0;
+        let crossings = 0;
+        let prev = ch[from];
+        for (let i = from; i < to; i++) {
+          const v = ch[i];
+          const w = ch2[i];
+          if (!Number.isFinite(v) || !Number.isFinite(w)) nan++;
+          sum += v * v;
+          if (prev <= 0 && v > 0) crossings++;
+          prev = v;
+        }
+        const rms = Math.sqrt(sum / (to - from));
+        const freq = crossings / ((to - from) / SR);
+        return { rms, freq, nan };
+      }
+
+      const base = {
+        input: 0,
+        out: 0,
+        formant: 0,
+        preserve: true,
+        vibRate: 5.5,
+        vibDepth: 0,
+        warmth: 0,
+        ring: 0,
+        smooth: 0,
+        air: 0,
+        drive: 0,
+        comp: 0,
+        chorus: 0,
+        width: 0.6,
+        mix: 0,
+        size: 0.3,
+      };
+
+      try {
+        log('rendering dry pitch+12 ...');
+        const a = await render({ ...base, pitch: 12 }, 3);
+        const sa = stats(a, SR, SR * 2);
+        log(`dry+12: rms=${sa.rms.toFixed(4)} freq=${sa.freq.toFixed(1)} nan=${sa.nan}`);
+
+        log('rendering transparent ...');
+        const b = await render({ ...base, pitch: 0 }, 3);
+        const sb = stats(b, SR, SR * 2);
+        log(`pass:  rms=${sb.rms.toFixed(4)} freq=${sb.freq.toFixed(1)} nan=${sb.nan}`);
+
+        log('rendering full tenor preset ...');
+        const preset = {
+          pitch: 0,
+          formant: -1.8,
+          preserve: true,
+          vibRate: 5.6,
+          vibDepth: 26,
+          warmth: 3,
+          ring: 6,
+          smooth: 2,
+          air: 1,
+          drive: 0.25,
+          comp: 0.5,
+          input: 0,
+          out: 0,
+          size: 0.5,
+          mix: 0.34,
+          chorus: 0.1,
+          width: 0.6,
+        };
+        const c = await render(preset, 4);
+        const sc = stats(c, SR, SR * 3);
+        log(`tenor: rms=${sc.rms.toFixed(4)} nan=${sc.nan} duration=${c.duration.toFixed(2)}`);
+
+        const ok =
+          sa.nan === 0 &&
+          sb.nan === 0 &&
+          sc.nan === 0 &&
+          Math.abs(sa.freq - 440) < 8 &&
+          Math.abs(sb.freq - 220) < 6 &&
+          sc.rms > 0.01 &&
+          sc.rms < 0.9;
+        log(ok ? 'E2E_PASS' : 'E2E_FAIL');
+        document.title = ok ? 'E2E_PASS' : 'E2E_FAIL';
+      } catch (e) {
+        log('EXCEPTION ' + (e.stack || e.message));
+        document.title = 'E2E_ERROR';
+      }
+    </script>
+  </body>
+</html>

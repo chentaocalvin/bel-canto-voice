@@ -1,0 +1,88 @@
+const readonly = (names) => Object.fromEntries(names.map((name) => [name, 'readonly']));
+const shared = readonly([
+  'console',
+  'setTimeout',
+  'clearTimeout',
+  'setInterval',
+  'clearInterval',
+  'URL',
+  'URLSearchParams',
+]);
+const browser = readonly([
+  'window',
+  'document',
+  'navigator',
+  'performance',
+  'localStorage',
+  'sessionStorage',
+  'MessageChannel',
+  'requestAnimationFrame',
+  'cancelAnimationFrame',
+  'ResizeObserver',
+  'AudioContext',
+  'AudioWorkletNode',
+  'OfflineAudioContext',
+  'MediaRecorder',
+  'Blob',
+  'fetch',
+  'File',
+  'FileReader',
+  'Event',
+  'EventTarget',
+  'queueMicrotask',
+  'DOMException',
+]);
+
+export default [
+  { ignores: ['node_modules/**', 'dist/**', 'demo/**'] },
+  {
+    files: ['src/**/*.js', 'tools/**/*.mjs', 'eslint.config.mjs', 'tools/*.browser.js'],
+    languageOptions: { ecmaVersion: 2025, sourceType: 'module', globals: shared },
+    linterOptions: { reportUnusedDisableDirectives: 'error' },
+    rules: {
+      'no-undef': 'error',
+      'no-unused-vars': ['error', { args: 'after-used', caughtErrors: 'all' }],
+      'no-unreachable': 'error',
+      'no-dupe-args': 'error',
+      'no-dupe-keys': 'error',
+      'no-duplicate-case': 'error',
+      'no-constant-condition': ['error', { checkLoops: false }],
+      'no-unsafe-finally': 'error',
+      'no-unsafe-optional-chaining': 'error',
+      'use-isnan': 'error',
+      'valid-typeof': 'error',
+    },
+  },
+  { files: ['src/**/*.js', 'tools/*.browser.js'], languageOptions: { globals: browser } },
+  {
+    files: ['src/worklet/*.js'],
+    languageOptions: {
+      globals: readonly([
+        'AudioWorkletProcessor',
+        'registerProcessor',
+        'sampleRate',
+        'currentTime',
+        'currentFrame',
+      ]),
+    },
+  },
+  {
+    files: ['tools/**/*.mjs', 'eslint.config.mjs'],
+    languageOptions: {
+      globals: readonly([
+        'process',
+        'Buffer',
+        'fetch',
+        'WebSocket',
+        'AbortController',
+        'AbortSignal',
+        'Event',
+        'EventTarget',
+        'queueMicrotask',
+        'TextDecoder',
+        'TextEncoder',
+        'structuredClone',
+      ]),
+    },
+  },
+];

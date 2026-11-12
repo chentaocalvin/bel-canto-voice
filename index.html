@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BEL CANTO · Vocal Sculptor</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="capgrad" x1="0.15" y1="0" x2="0.75" y2="1">
+          <stop offset="0%" stop-color="#3a4049" />
+          <stop offset="38%" stop-color="#262a31" />
+          <stop offset="72%" stop-color="#191c21" />
+          <stop offset="100%" stop-color="#0f1114" />
+        </linearGradient>
+        <radialGradient id="glossgrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.16)" />
+          <stop offset="70%" stop-color="rgba(255,255,255,0.04)" />
+          <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+        </radialGradient>
+      </defs>
+    </svg>
+    <div class="app" id="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-badge">BC</div>
+          <div class="brand-text">
+            <h1>BEL CANTO</h1>
+            <p>VOCAL SCULPTOR</p>
+          </div>
+        </div>
+
+        <div class="center-controls">
+          <div class="preset-bar">
+            <button class="nav-btn" id="preset-prev" title="Previous preset">‹</button>
+            <label class="preset-select-wrap">
+              <span class="preset-label">PRESET</span>
+              <select id="preset"></select>
+            </label>
+            <button class="nav-btn" id="preset-next" title="Next preset">›</button>
+            <button
+              class="nav-btn reset-btn"
+              id="reset-btn"
+              aria-label="Reset to defaults"
+              title="Reset all knobs to factory defaults. A/B snapshots are kept."
+              >↺ RESET</button
+            >
+          </div>
+          <div class="ab" role="group" aria-label="A/B compare">
+            <button class="ab-btn active" data-slot="A" aria-pressed="true">A</button>
+            <button class="ab-btn" data-slot="B" aria-pressed="false">B</button>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button
+            class="btn source-btn"
+            id="source-mic"
+            aria-pressed="false"
+            title="Switch to microphone mode (no permission request)"
+            >Microphone</button
+          >
+          <button
+            class="btn source-btn"
+            id="source-file"
+            aria-pressed="false"
+            title="Switch to file mode (no file picker yet)"
+            >Audio file</button
+          >
+          <button
+            class="btn monitor"
+            id="monitor"
+            aria-pressed="true"
+            title="Mute speaker monitoring (recording and export keep running)"
+            >🔊 Monitor</button
+          >
+          <button class="btn bypass" id="bypass" aria-pressed="false">BYPASS</button>
+        </div>
+      </header>
+
+      <section class="display">
+        <div class="screen">
+          <canvas id="scope"></canvas>
+          <div class="screen-tag">MONITOR</div>
+          <div class="screen-tabs" role="group" aria-label="Display mode">
+            <button data-mode="split" class="active">SPLIT</button>
+            <button data-mode="spectrum">SPECTRUM</button>
+            <button data-mode="wave">WAVE</button>
+          </div>
+          <div class="screen-hint" id="screen-hint">Choose an input to begin</div>
+        </div>
+        <aside class="display-side">
+          <div class="note">
+            <div class="note-name" id="note-name">–</div>
+            <div class="note-meta" id="note-meta">-- Hz</div>
+            <div class="tuner" id="tuner"><i id="tuner-needle"></i></div>
+          </div>
+          <div class="meters">
+            <div class="meter-col">
+              <span>IN</span>
+              <div class="meter" id="meter-in"><i></i><b></b></div>
+            </div>
+            <div class="meter-col">
+              <span>OUT</span>
+              <div class="meter" id="meter-out"><i></i><b></b></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <div class="transport" id="transport" hidden>
+        <div class="transport-left" id="transport-mic" hidden>
+          <button
+            class="btn small mic-toggle"
+            id="mic-toggle"
+            aria-pressed="false"
+            aria-label="Enable mic"
+            >Enable mic</button
+          >
+          <button class="btn small" id="rec-btn" aria-pressed="false" aria-label="Start recording"
+            ><span class="rec-dot"></span>Record</button
+          >
+          <button
+            class="btn small rec-pause"
+            id="rec-pause"
+            aria-pressed="false"
+            aria-label="Pause recording"
+            hidden
+            >Pause</button
+          >
+          <div class="rec-actions" id="rec-actions" aria-busy="false" hidden>
+            <button
+              class="btn small rec-save"
+              id="rec-save"
+              aria-label="Save this take as WAV"
+              disabled
+              >Save WAV</button
+            >
+            <button
+              class="btn small rec-discard"
+              id="rec-discard"
+              aria-label="Discard this take"
+              disabled
+              >Discard</button
+            >
+          </div>
+          <div
+            class="export-progress rec-progress"
+            id="rec-progress"
+            role="progressbar"
+            aria-label="Save progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            hidden
+          >
+            <div class="export-track"><i id="rec-fill"></i></div>
+            <span class="export-pct" id="rec-pct">0%</span>
+          </div>
+          <span class="transport-hint" id="rec-hint"
+            >Capture the processed voice · pause and resume freely · stop, then save or
+            discard</span
+          >
+        </div>
+        <div class="transport-left" id="transport-file" hidden>
+          <button class="btn small choose-file" id="choose-file" aria-label="Choose an audio file"
+            >Choose file</button
+          >
+          <button class="btn small" id="play-btn" aria-label="Play" disabled>▶</button>
+          <button
+            class="btn small loop"
+            id="loop-btn"
+            aria-pressed="false"
+            title="Loop playback"
+            disabled
+            >LOOP</button
+          >
+          <span class="file-name" id="file-name">—</span>
+          <div
+            class="timeline"
+            id="timeline"
+            role="slider"
+            tabindex="-1"
+            aria-label="Playback position"
+            aria-valuemin="0"
+            aria-valuemax="0"
+            aria-valuenow="0"
+            aria-disabled="true"
+            hidden
+          >
+            <canvas id="timeline-wave" aria-hidden="true"></canvas>
+            <div class="timeline-head" id="timeline-head"></div>
+            <span class="timeline-bubble" id="timeline-bubble" hidden>0:00</span>
+          </div>
+          <div class="export-slot">
+            <button class="btn small" id="export-btn" disabled>Export WAV</button>
+            <div
+              class="export-progress"
+              id="export-progress"
+              role="progressbar"
+              aria-label="Export progress"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              hidden
+            >
+              <div class="export-track"><i id="export-fill"></i></div>
+              <span class="export-pct" id="export-pct">0%</span>
+            </div>
+          </div>
+        </div>
+        <div class="transport-right">
+          <span id="rec-time"></span>
+        </div>
+      </div>
+
+      <main class="panels" id="panels"></main>
+
+      <footer class="statusbar">
+        <div class="status-left">
+          <span class="dot" id="status-dot"></span>
+          <span id="status-text">Ready · choose an input</span>
+        </div>
+        <div class="status-right">
+          <span id="latency">—</span>
+          <span class="hint"
+            >Drag a knob · Shift for fine control · double-click to reset · headphones
+            recommended</span
+          >
+        </div>
+      </footer>
+
+      <div class="boot" id="boot">
+        <div class="boot-card">
+          <div class="boot-mark">BC</div>
+          <h2>BEL CANTO</h2>
+          <p class="boot-sub">Voice in. Bel canto out.</p>
+          <div class="boot-actions">
+            <button class="btn primary" id="boot-mic">Enter microphone mode</button>
+            <button class="btn" id="boot-file">Enter file mode</button>
+          </div>
+          <p class="boot-note"
+            >You choose when to enable the mic or pick a file · headphones recommended · ~48 ms
+            latency · ALAC/AIFF conversion requires local server</p
+          >
+          <p class="boot-err" id="boot-err"></p>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" role="status"></div>
+      <input type="file" id="file-input" accept="audio/*,.m4a,.aiff,.aif,.alac,.caf" hidden />
+    </div>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

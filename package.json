@@ -1,0 +1,25 @@
+{
+  "name": "bel-canto-voice",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bel Canto Vocal Sculptor — 浏览器里的美声人声效果器",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node tools/test-dsp.mjs",
+    "test:tools": "node --test tools/*.test.mjs",
+    "lint": "node tools/lint.mjs",
+    "format:check": "node tools/format.mjs --check",
+    "format": "node tools/format.mjs --write",
+    "check:release": "node tools/release.mjs check",
+    "build": "node tools/release.mjs build",
+    "release:source": "node tools/release.mjs source"
+  },
+  "devDependencies": {
+    "eslint": "10.14.0",
+    "prettier": "3.6.2"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24"
+  }
+}
