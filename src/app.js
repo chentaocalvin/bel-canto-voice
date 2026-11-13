@@ -27,6 +27,7 @@ const state = {
   micStarting: false,
   micStream: null,
   micNode: null,
+  micMono: null,
   fileBuffer: null,
   fileName: '',
   fileNode: null,
@@ -374,7 +375,7 @@ function enterMode(mode) {
   }
   let discarded = false;
   if (mode === 'file') {
-    if (state.micOn || state.micStream || state.micNode) {
+    if (state.micOn || state.micStream || state.micNode || state.micMono) {
       discarded = state.rec.state !== 'idle';
       stopMic();
     } else if (state.rec.state !== 'idle') {
@@ -415,10 +416,16 @@ async function startMic() {
       stream.getTracks().forEach((t) => t.stop());
       return;
     }
-    const node = state.ctx.createMediaStreamSource(stream);
-    node.connect(state.chain.input);
     state.micStream = stream;
+    const node = state.ctx.createMediaStreamSource(stream);
     state.micNode = node;
+    state.micMono = new window.GainNode(state.ctx, {
+      gain: 1,
+      channelCount: 1,
+      channelCountMode: 'explicit',
+      channelInterpretation: 'speakers',
+    });
+    node.connect(state.micMono).connect(state.chain.input);
     state.micOn = true;
     hideBoot();
     bootError('');
@@ -426,7 +433,7 @@ async function startMic() {
     toast(msg('toast.micOn'));
   } catch (err) {
     console.error(err);
-    state.micOn = false;
+    stopMic();
     renderModeUI();
     const detail =
       err && err.name === 'NotAllowedError'
@@ -456,6 +463,10 @@ function stopMic() {
       state.micNode.disconnect();
     } catch {}
     state.micNode = null;
+  }
+  if (state.micMono) {
+    state.micMono.disconnect();
+    state.micMono = null;
   }
   if (state.micStream) {
     state.micStream.getTracks().forEach((t) => t.stop());

@@ -34,6 +34,7 @@
     "tools/format.mjs",
     "tools/lint.mjs",
     "tools/make-test-wav.mjs",
+    "tools/mic-channel-test.mjs",
     "tools/page-errors.mjs",
     "tools/page-errors.test.mjs",
     "tools/page-status.mjs",
