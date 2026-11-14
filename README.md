@@ -2,13 +2,15 @@
 
 A vocal effects processor that runs in your browser.
 
-BEL CANTO processes live microphone input and audio files. Adjust pitch and formant independently, shape vocal tone with EQ and effects, compare two parameter settings, and export processed audio as WAV.
+[https://chentaocalvin.github.io/bel-canto-voice/](https://chentaocalvin.github.io/bel-canto-voice/)
 
-**[Open the live demo](https://chentaocalvin.github.io/bel-canto-voice/)**
+![BEL CANTO vocal controls and backing track interface](docs/preview.png)
+
+BEL CANTO processes live microphone input and audio files. Adjust pitch and formant independently, shape vocal tone with EQ and effects, compare two parameter settings, and export processed audio as WAV.
 
 ## Try it
 
-Open the demo in your browser. No installation is required.
+Open the website in your browser. No installation is required.
 
 1. Choose microphone or audio file mode.
 2. Start the microphone and allow access, or load an audio file and press play.
@@ -132,7 +134,7 @@ These tests use synthetic audio and simulated microphone input.
 - Synthetic browser checks do not replace listening to real music and microphone recordings on your device.
 - Changing the reverb size rebuilds the impulse response and may cause a brief click.
 - Export uses the current AudioContext sample rate, which may differ from the source file.
-- The hosted demo relies on the browser's audio-format support. If a file cannot be decoded, convert it to WAV before importing it. The local macOS server provides an additional conversion path for ALAC, AIFF, and CAF.
+- The hosted website relies on the browser's audio-format support. If a file cannot be decoded, convert it to WAV before importing it. The local macOS server provides an additional conversion path for ALAC, AIFF, and CAF.
 
 ## Deployment
 
