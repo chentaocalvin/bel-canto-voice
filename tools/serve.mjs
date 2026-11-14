@@ -38,6 +38,11 @@ function isPublicResource(resource) {
       '.nojekyll',
       'tools/e2e.html',
       'tools/test-vocal.wav',
+      'vendor/signalsmith-stretch/SignalsmithStretch.mjs',
+      'THIRD_PARTY_NOTICES.md',
+      'vendor/signalsmith-stretch/LICENSE.txt',
+      'vendor/signalsmith-stretch/LICENSE-linear.txt',
+      'vendor/signalsmith-stretch/LICENSE-emscripten.txt',
     ].includes(resource) || /^src\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.js$/i.test(resource)
   );
 }

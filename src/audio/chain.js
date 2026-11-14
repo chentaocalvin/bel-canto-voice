@@ -1,3 +1,4 @@
+import { voiceAlignmentFrames } from './voice-timing.js';
 import { buildImpulseResponse } from './reverb.js';
 
 const dbToGain = (db) => Math.pow(10, db / 20);
@@ -134,6 +135,10 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
   const vibOsc = node(ctx.createOscillator);
   vibOsc.type = 'sine';
   const vibDepth = node(ctx.createGain);
+  let configuredVibratoDepth = 0;
+  let configuredVibratoRate = 5.5;
+  let backingInitialized = false;
+  let alignmentFrames = voiceAlignmentFrames(ctx.sampleRate);
   vibOsc.connect(vibDepth).connect(vibDelay.delayTime);
   vibOsc.start();
 
@@ -142,6 +147,7 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
 
   const wetGate = node(ctx.createGain);
   const bypassGain = node(ctx.createGain);
+  const bypassDelay = node(ctx.createDelay, 0.2);
   bypassGain.gain.value = 0;
 
   const chorusL = node(ctx.createDelay, 0.08);
@@ -196,6 +202,7 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
   outAnalyser.minDecibels = -88;
   outAnalyser.maxDecibels = -10;
 
+  const playbackGate = node(ctx.createGain);
   const monitorGain = node(ctx.createGain);
   monitorGain.gain.value = 1;
   let monitorOn = true;
@@ -230,13 +237,13 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
   convolver.connect(reverbGain);
   reverbGain.connect(master);
 
-  input.connect(bypassGain);
+  input.connect(bypassDelay).connect(bypassGain);
   bypassGain.connect(master);
 
   master.connect(limiterNode);
   limiterNode.connect(outGain);
   outGain.connect(outAnalyser);
-  outAnalyser.connect(monitorGain);
+  outAnalyser.connect(playbackGate).connect(monitorGain);
   monitorGain.connect(destination);
 
   let lastSize = -1;
@@ -265,13 +272,17 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
       });
     }
 
-    if (p.vibRate !== undefined) ramp(vibOsc.frequency, p.vibRate, 0.08);
+    if (p.vibRate !== undefined) {
+      configuredVibratoRate = p.vibRate;
+      ramp(vibOsc.frequency, p.vibRate, 0.08);
+    }
     if (p.vibDepth !== undefined) {
       const rate = p.vibRate ?? 5.5;
       const cents = clamp(p.vibDepth, 0, 200);
 
       const amp = (Math.pow(2, cents / 1200) - 1) / (2 * Math.PI * rate);
-      ramp(vibDepth.gain, Math.max(0, amp), 0.04);
+      configuredVibratoDepth = Math.max(0, amp);
+      ramp(vibDepth.gain, configuredVibratoDepth, 0.04);
     }
     if (p.vibDepth !== undefined || p.vibRate !== undefined) {
       ramp(vibDelay.delayTime, 0.012, 0.05);
@@ -335,8 +346,13 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
     }
   }
 
-  function setBypass(on) {
+  function setBypass(on, { immediate = false } = {}) {
     const t = ctx.currentTime;
+    if (immediate) {
+      wetGate.gain.setValueAtTime(on ? 0 : 1, t);
+      bypassGain.gain.setValueAtTime(on ? 1 : 0, t);
+      return;
+    }
     wetGate.gain.setTargetAtTime(on ? 0 : 1, t, 0.012);
     bypassGain.gain.setTargetAtTime(on ? 1 : 0, t, 0.012);
   }
@@ -357,7 +373,12 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
     } catch {}
     outAnalyser.disconnect();
     monitorGain.disconnect();
+    playbackGate.disconnect();
     input.disconnect();
+    for (const processor of [sculptor, dynamics, limiterNode]) {
+      processor.disconnect();
+      processor.port.close();
+    }
   }
 
   update({
@@ -396,6 +417,7 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
     dry: dry.gain,
     preDelay: preDelay.delayTime,
     monitor: monitorGain.gain,
+    playback: playbackGate.gain,
   };
 
   return {
@@ -415,5 +437,24 @@ export async function createVoiceChain(ctx, params = {}, options = {}) {
     dispose,
     audioParams,
     latencySamples: 2048,
+    get nominalLatencyFrames() {
+      return alignmentFrames;
+    },
+    setBackingActive(active, measuredFrames = voiceAlignmentFrames(ctx.sampleRate)) {
+      alignmentFrames = measuredFrames;
+      if (!active) {
+        playbackGate.gain.cancelScheduledValues(ctx.currentTime);
+        playbackGate.gain.setValueAtTime(1, ctx.currentTime);
+      }
+      bypassDelay.delayTime.value = active ? alignmentFrames / ctx.sampleRate : 0;
+      if (active && !backingInitialized) {
+        const time = ctx.currentTime;
+        vibDepth.gain.cancelScheduledValues(time);
+        vibDepth.gain.setValueAtTime(configuredVibratoDepth, time);
+        vibOsc.frequency.cancelScheduledValues(time);
+        vibOsc.frequency.setValueAtTime(configuredVibratoRate, time);
+        backingInitialized = true;
+      }
+    },
   };
 }

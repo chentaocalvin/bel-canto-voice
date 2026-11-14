@@ -9,7 +9,11 @@ const manifest = JSON.parse(
 );
 const write = process.argv[2] === '--write';
 if (!write && process.argv[2] !== '--check') throw new Error('Expected --check or --write');
-const files = manifest.source.filter((path) => /\.(?:js|mjs|json|html|css|md)$/.test(path));
+const files = manifest.source.filter(
+  (path) =>
+    path !== 'vendor/signalsmith-stretch/SignalsmithStretch.mjs' &&
+    /\.(?:js|mjs|json|html|css|md)$/.test(path),
+);
 let failures = 0;
 for (const file of files) {
   const path = resolve(root, file);

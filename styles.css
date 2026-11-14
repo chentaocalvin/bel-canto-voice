@@ -1418,3 +1418,186 @@ body::before {
   background: rgba(227, 181, 107, 0.16);
   color: var(--gold);
 }
+
+.transport {
+  flex-wrap: wrap;
+}
+.backing-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 24px;
+  width: 100%;
+  min-width: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  font-size: 11px;
+}
+.backing-controls .backing-main {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
+}
+.backing-controls .backing-heading,
+.backing-controls .backing-transport,
+.backing-controls .backing-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.backing-controls .backing-heading,
+.backing-controls .backing-transport {
+  flex-wrap: wrap;
+}
+.backing-controls .backing-heading strong {
+  letter-spacing: 0.16em;
+  color: var(--gold);
+}
+.backing-controls .backing-settings {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  gap: 6px;
+  border-left: 1px solid var(--line);
+  padding-left: 24px;
+}
+.backing-controls .backing-knobs {
+  display: flex;
+  gap: 16px;
+}
+.backing-controls .backing-knobs .knob {
+  width: 88px;
+}
+.backing-controls .knob-name,
+.backing-controls #backing-status {
+  color: var(--text);
+}
+.backing-controls #backing-status {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.backing-controls #backing-remove,
+.backing-controls #backing-reset {
+  color: var(--text);
+  background: transparent;
+  box-shadow: none;
+}
+.backing-controls #backing-remove {
+  margin-left: auto;
+}
+.backing-controls .backing-timeline {
+  order: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+}
+.backing-controls .backing-timeline:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.backing-controls #backing-position {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.backing-controls #backing-position:disabled {
+  cursor: default;
+}
+.backing-controls #backing-time {
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.backing-controls .backing-recording {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  color: var(--text);
+}
+.backing-controls .backing-recording summary {
+  width: fit-content;
+  cursor: pointer;
+  padding: 3px 0;
+}
+.backing-controls .backing-recording summary::marker {
+  color: var(--gold);
+}
+.backing-controls .backing-recording summary:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.backing-controls .backing-alignment {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+}
+.backing-controls input[type='number'] {
+  width: 64px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 5px;
+}
+@media (max-width: 720px) {
+  .backing-controls {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .backing-controls .backing-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-left: 0;
+    padding-left: 0;
+  }
+  .backing-controls .backing-knobs {
+    gap: 12px;
+  }
+  .backing-controls .backing-knobs .knob {
+    width: 80px;
+  }
+}
+
+@media (max-width: 720px) {
+  .center-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .preset-bar {
+    min-width: 0;
+  }
+  .top-actions {
+    flex-wrap: wrap;
+  }
+}
+
+.knob-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ns-resize;
+}
+.knob:has(.knob-input:focus-visible) {
+  outline: 1px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.knob[aria-disabled='true'] {
+  opacity: 0.45;
+}
+.knob[aria-disabled='true'] .knob-input {
+  cursor: default;
+}

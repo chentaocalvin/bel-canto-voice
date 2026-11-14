@@ -29,7 +29,8 @@ process.exitCode = await withBrowser(
     await sleep(2500);
 
     const before = await evalJs(`({
-  knobs: document.querySelectorAll('.knob').length,
+  knobs: document.querySelectorAll('#panels .knob').length,
+  backingKnobs: document.querySelectorAll('.backing-controls .knob').length,
   panels: document.querySelectorAll('.panel').length,
   presetOptions: document.getElementById('preset').options.length,
   bootVisible: !document.getElementById('boot').classList.contains('hidden'),
@@ -45,7 +46,8 @@ process.exitCode = await withBrowser(
   }
 })`);
     console.log('before:', JSON.stringify(before));
-    c.add('初始有 16 个旋钮', before.knobs === 16, 16, before.knobs);
+    c.add('人声面板初始有 16 个旋钮', before.knobs === 16, 16, before.knobs);
+    c.add('BACKING 区域有 2 个独立旋钮', before.backingKnobs === 2, 2, before.backingKnobs);
     c.add('初始有 4 个参数面板', before.panels === 4, 4, before.panels);
     c.add('预设为 6 个 + 自定义项（共 7 项）', before.presetOptions === 7, 7, before.presetOptions);
     c.add('启动遮罩初始可见', before.bootVisible === true, true, before.bootVisible);
@@ -123,7 +125,7 @@ process.exitCode = await withBrowser(
     bootMic: text('boot-mic'),
     bootFile: text('boot-file'),
     status: text('status-text'),
-    knobNames: [...document.querySelectorAll('.knob-name')].map((e) => e.textContent),
+    knobNames: [...document.querySelectorAll('#panels .knob-name')].map((e) => e.textContent),
     knobCnCount: document.querySelectorAll('.knob-cn').length,
     panelCjk: cjk.test(document.getElementById('panels').textContent),
     statusbarCjk: cjk.test(document.querySelector('.statusbar').textContent),
@@ -233,7 +235,7 @@ process.exitCode = await withBrowser(
     bootHidden: document.getElementById('boot').classList.contains('hidden'),
     status: document.getElementById('status-text').textContent,
     panels: document.querySelectorAll('.panel').length,
-    knobs: document.querySelectorAll('.knob').length
+    knobs: document.querySelectorAll('#panels .knob').length
   };
 })()`);
     console.log('mic-mode-entered:', JSON.stringify(entered));

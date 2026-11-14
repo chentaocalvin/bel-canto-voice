@@ -35,8 +35,8 @@ npm run release:source -- ../bel-canto-release
 npm run build
 ```
 
-`dist/` 包含 `index.html`、`styles.css`、`src/` 中的运行模块、`.nojekyll` 和 `LICENSE`，
-以 `release-files.json` 的 `site` 清单为准。它不包含开发工具或仓库文档。
+`dist/` 包含 `index.html`、`styles.css`、`src/` 中的运行模块、`.nojekyll`、`LICENSE`、`vendor/signalsmith-stretch/` 和 `THIRD_PARTY_NOTICES.md`，
+以 `release-files.json` 的 `site` 清单为准。它不包含开发工具；第三方许可与来源说明随网站保留。
 应用资源和 worklet 使用相对地址，可部署到站点根目录或项目子路径。
 
 本地预览生成的站点：
@@ -63,4 +63,6 @@ GitHub Pages、Netlify 等静态托管服务应使用 `dist/` 的内容作为站
 该服务调用 macOS 的 `afconvert`。静态托管没有这一服务，请先将此类文件转成 WAV。
 
 格式转换 API 使用根路径 `/api/convert`；它与应用静态资源的相对路径加载方式不同。
-文件导出仍由浏览器完成，包含源文件全长和 3 秒混响尾音。
+文件导出仍由浏览器完成。无伴奏时保留人声文件全长与 3 秒尾音；加载伴奏后，长度为「人声加 3 秒尾音」和「伴奏全长」中的较长者。伴奏需采用浏览器可直接解码的单声道或立体声格式。
+
+`vendor/signalsmith-stretch/SignalsmithStretch.mjs` 保留上游原始内容，内部包含 WebAssembly，无需 CDN。请随构建结果保留该目录内全部许可证；勿单独复制处理器而遗漏声明。

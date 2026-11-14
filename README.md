@@ -26,6 +26,16 @@ Use headphones when working with a live microphone to prevent speaker feedback.
 - Record microphone input, pause and resume within the same take, then save or discard the recording.
 - Export a complete audio file with the current effects and a three-second reverb tail.
 
+## Using a backing track
+
+Choose **Load backing** in the transport area. Loading and transposing prepare the track without starting playback. The gain starts at -6 dB to leave mixing headroom. Vocal effects, presets, bypass, and the Out control affect the voice only. Transpose the backing from -6 to +6 semitones without changing its tempo.
+
+In file mode, both tracks share playback, seeking, and looping. A shorter track becomes silent until the common loop restarts. A longer backing can finish. Changing Loop just before the end briefly pauses both tracks while they realign, then resumes at the same position. Export renders the complete mix, regardless of the playhead position or loop setting.
+
+In microphone mode, preview the backing before recording, or choose its starting position. Starting a take includes the backing; pausing the take pauses the backing as well. Stop, then save or discard. The backing file and transpose are locked until the take is saved or discarded. Gain changes during the take are captured.
+
+Use **Move saved vocal earlier (ms)** to adjust remaining recording offset. Positive values move the saved vocal earlier; negative values move it later. The default is zero. This setting is frozen for the take and does not change live monitoring. Use headphones and audition a short saved take with your microphone before recording a full performance.
+
 ## How it works
 
 The application uses the Web Audio API, AudioWorklet, and JavaScript DSP.
@@ -44,7 +54,7 @@ An AudioWorklet processor handles compression and soft-clipping limiting. Reverb
 
 ### Playback and export
 
-Real-time playback and offline export use the same audio-chain implementation and parameter mappings. Export renders the entire source file, regardless of the playhead position or loop setting.
+Real-time playback and offline export use the same audio-chain implementation and parameter mappings. Export renders the entire source file, regardless of the playhead position or loop setting. With backing, the output lasts for the longer of the backing or the vocal file plus its three-second effects tail.
 
 The output is stereo, 16-bit PCM WAV at the current AudioContext sample rate. Muting speaker monitoring does not mute recordings or exported files.
 
@@ -100,6 +110,14 @@ node tools/ui-test.mjs
 node tools/file-test.mjs
 node tools/export-test.mjs
 node tools/rec-test.mjs
+node tools/backing-processor-test.mjs
+node tools/backing-ui-test.mjs
+node tools/backing-transport-test.mjs
+node tools/backing-export-test.mjs
+node tools/backing-recorder-test.mjs
+node tools/backing-recording-test.mjs
+npm run build
+node tools/backing-site-test.mjs
 ```
 
 These tests use synthetic audio and simulated microphone input.
@@ -108,8 +126,10 @@ These tests use synthetic audio and simulated microphone input.
 
 ## Limitations
 
-- The STFT stage adds 2,048 samples of latency. Total latency also depends on the browser and audio device.
+- Live monitoring has processing and device latency. Backing alignment measures the fixed vocal processing delay; device latency still varies. The recording adjustment affects the saved take only.
 - Large pitch shifts can produce audible phase artifacts.
+- Backing pitch shifting can smear transients near the beginning or end of a track; the processed track keeps its original duration. Zero transpose uses the decoded audio unchanged.
+- Synthetic browser checks do not replace listening to real music and microphone recordings on your device.
 - Changing the reverb size rebuilds the impulse response and may cause a brief click.
 - Export uses the current AudioContext sample rate, which may differ from the source file.
 - The hosted demo relies on the browser's audio-format support. If a file cannot be decoded, convert it to WAV before importing it. The local macOS server provides an additional conversion path for ALAC, AIFF, and CAF.
@@ -125,5 +145,7 @@ npm run build
 Publish the contents of `dist/` through an HTTPS static host. See the [deployment guide](https://github.com/chentaocalvin/bel-canto-voice/blob/main/DEPLOY.md) for the file lists and publishing steps.
 
 ## License
+
+The bundled backing processor and its licenses are listed in [Third-party notices](THIRD_PARTY_NOTICES.md).
 
 [MIT](https://github.com/chentaocalvin/bel-canto-voice/blob/main/LICENSE).

@@ -20,6 +20,7 @@ const browser = readonly([
   'cancelAnimationFrame',
   'ResizeObserver',
   'AudioContext',
+  'AudioBuffer',
   'AudioWorkletNode',
   'OfflineAudioContext',
   'MediaRecorder',
@@ -34,7 +35,14 @@ const browser = readonly([
 ]);
 
 export default [
-  { ignores: ['node_modules/**', 'dist/**', 'demo/**'] },
+  {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'demo/**',
+      'vendor/signalsmith-stretch/SignalsmithStretch.mjs',
+    ],
+  },
   {
     files: ['src/**/*.js', 'tools/**/*.mjs', 'eslint.config.mjs', 'tools/*.browser.js'],
     languageOptions: { ecmaVersion: 2025, sourceType: 'module', globals: shared },
