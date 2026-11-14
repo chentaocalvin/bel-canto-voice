@@ -36,7 +36,7 @@ function tickMarks(count = 9) {
 }
 
 export class Knob {
-  constructor(id, def, value, onChange) {
+  constructor(id, def, value, onChange, { nativeInput = false } = {}) {
     this.id = id;
     this.def = def;
     this.onChange = onChange;
@@ -69,10 +69,36 @@ export class Knob {
     this.valueEl = el.querySelector('.knob-value');
     this.bubbleEl = el.querySelector('.knob-bubble');
 
+    if (nativeInput) {
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = id;
+      input.min = String(def.min);
+      input.max = String(def.max);
+      input.step = String(def.step);
+      input.className = 'knob-input';
+      input.setAttribute('aria-label', def.label);
+      input.addEventListener('input', () => this.setValue(Number(input.value)));
+      el.removeAttribute('role');
+      el.removeAttribute('tabindex');
+      el.appendChild(input);
+      this.input = input;
+    }
     this._bindPointer();
     this._bindKeyboard();
-    this.el.setAttribute('aria-label', this.def.label);
+    (this.input || this.el).setAttribute('aria-label', this.def.label);
     this.setValue(value, true);
+  }
+
+  setDisabled(disabled) {
+    this.disabled = disabled;
+    this.el.setAttribute('aria-disabled', String(disabled));
+    if (this.input) this.input.disabled = disabled;
+    else this.el.tabIndex = disabled ? -1 : 0;
+    if (disabled) {
+      this.dragging = false;
+      this.el.classList.remove('is-active');
+    }
   }
 
   _frac(v) {
@@ -110,15 +136,19 @@ export class Knob {
     this.tick.setAttribute('y2', y2.toFixed(2));
     this.valueEl.textContent = this.def.format(this.value);
     if (this.bubbleEl) this.bubbleEl.textContent = this.def.format(this.value);
-    this.el.setAttribute('aria-valuemin', String(this.def.min));
-    this.el.setAttribute('aria-valuemax', String(this.def.max));
-    this.el.setAttribute('aria-valuenow', String(this.value));
-    this.el.setAttribute('aria-valuetext', this.def.format(this.value));
+    const control = this.input || this.el;
+    if (this.input) this.input.value = String(this.value);
+    control.setAttribute('aria-valuemin', String(this.def.min));
+    control.setAttribute('aria-valuemax', String(this.def.max));
+    control.setAttribute('aria-valuenow', String(this.value));
+    control.setAttribute('aria-valuetext', this.def.format(this.value));
   }
 
   _bindPointer() {
     const el = this.el;
     const down = (e) => {
+      if (this.disabled) return;
+      this.input?.focus();
       if (e.button !== undefined && e.button !== 0) return;
       this.dragging = true;
       this.startY = e.clientY;
@@ -151,15 +181,17 @@ export class Knob {
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
     el.addEventListener('dblclick', (e) => {
+      if (this.disabled) return;
       e.preventDefault();
       this.setValue(this.def.def);
     });
     el.addEventListener(
       'wheel',
       (e) => {
+        if (this.disabled) return;
         e.preventDefault();
         const dir = e.deltaY > 0 ? -1 : 1;
-        const mult = e.shiftKey ? 1 : 4;
+        const mult = this.input || e.shiftKey ? 1 : 4;
         this.setValue(this.value + dir * this.def.step * mult);
       },
       { passive: false },
@@ -167,7 +199,9 @@ export class Knob {
   }
 
   _bindKeyboard() {
+    if (this.input) return;
     this.el.addEventListener('keydown', (e) => {
+      if (this.disabled) return;
       const step = this.def.step * (e.shiftKey ? 1 : 5);
       let handled = true;
       switch (e.key) {

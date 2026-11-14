@@ -1,3 +1,10 @@
+import { formatTime, paintWaveform } from './ui/timeline.js';
+import { createBackingTake } from './audio/backing-take.js';
+import { createFileMix } from './audio/file-mix.js';
+import { CommonTransport } from './audio/common-transport.js';
+import { BackingTrack } from './audio/backing-track.js';
+import { createBackingControls } from './ui/backing.js';
+import { encodeWav, encodeWavWithProgress } from './audio/wav.js';
 import { createVoiceChain } from './audio/chain.js';
 import { PARAMS, PANELS, PRESETS, DEFAULT_PRESET, defaultValues } from './ui/params.js';
 import { Knob } from './ui/knob.js';
@@ -69,6 +76,7 @@ const state = {
   note: '',
 };
 
+let backingControls;
 let toastTimer = 0;
 function toast(msg) {
   const el = $('toast');
@@ -250,6 +258,7 @@ function setMonitor(on) {
   state.monitorOn = !!on;
   updateMonitorUI();
   state.chain?.setMonitor(state.monitorOn);
+  state.backing?.setMonitor(state.monitorOn);
   toast(msg(state.monitorOn ? 'toast.monitorOn' : 'toast.monitorOff'));
 }
 
@@ -263,8 +272,13 @@ async function ensureAudio() {
     const chain = await createVoiceChain(ctx, state.values);
     state.ctx = ctx;
     state.chain = chain;
+    state.backing = new BackingTrack(ctx, {
+      locked: backingLocked,
+      onChange: () => backingControls?.render(),
+    });
 
     chain.setMonitor(state.monitorOn);
+    state.backing.setMonitor(state.monitorOn);
     state.scope = new Scope($('scope'), {
       outAnalyser: chain.outAnalyser,
       inAnalyser: chain.inAnalyser,
@@ -378,12 +392,13 @@ function enterMode(mode) {
     if (state.micOn || state.micStream || state.micNode || state.micMono) {
       discarded = state.rec.state !== 'idle';
       stopMic();
-    } else if (state.rec.state !== 'idle') {
+    } else if (state.rec.state !== 'idle' || state.rec.preparing) {
       discarded = true;
       discardTake('reason.switchSource');
     }
   }
   if (state.playing) pauseFile();
+  state.backing?.pause();
   state.mode = mode;
   hideBoot();
   bootError('');
@@ -426,6 +441,11 @@ async function startMic() {
       channelInterpretation: 'speakers',
     });
     node.connect(state.micMono).connect(state.chain.input);
+    state.chain.audioParams.playback.cancelScheduledValues(state.ctx.currentTime);
+    state.chain.audioParams.playback.setValueAtTime(
+      1,
+      state.ctx.currentTime + state.chain.nominalLatencyFrames / state.ctx.sampleRate,
+    );
     state.micOn = true;
     hideBoot();
     bootError('');
@@ -457,7 +477,7 @@ function closeMic() {
 }
 
 function stopMic() {
-  if (state.rec.state !== 'idle') discardTake('reason.switchSource');
+  if (state.rec.state !== 'idle' || state.rec.preparing) discardTake('reason.switchSource');
   if (state.micNode) {
     try {
       state.micNode.disconnect();
@@ -511,6 +531,7 @@ async function handleFile(file) {
     if (state.mode !== 'file') discarded = enterMode('file');
     else if (state.micOn) stopMic();
     stopFile();
+    state.fileMix = null;
     state.fileBuffer = buf;
     state.fileName = file.name;
     resetExportProgress();
@@ -533,13 +554,8 @@ async function handleFile(file) {
   }
 }
 
-function formatTime(sec) {
-  const s = Math.max(0, Math.round(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
 function fileDuration() {
-  return state.fileBuffer ? state.fileBuffer.duration : 0;
+  return Math.max(state.fileBuffer?.duration || 0, state.backing?.buffer?.duration || 0);
 }
 
 function filePosition() {
@@ -560,14 +576,17 @@ function computeFilePeaks(columns) {
   const chans = [];
   const nch = Math.min(2, buf.numberOfChannels);
   for (let c = 0; c < nch; c++) chans.push(buf.getChannelData(c));
-  const frames = buf.length;
+  const frames = Math.round(fileDuration() * buf.sampleRate);
   const min = new Float32Array(columns);
   const max = new Float32Array(columns);
   if (!frames) return { columns, min, max, peak: 0 };
   let peak = 0;
   for (let col = 0; col < columns; col++) {
     const start = Math.floor((col * frames) / columns);
-    const end = Math.max(start + 1, Math.min(frames, Math.floor(((col + 1) * frames) / columns)));
+    const end = Math.max(
+      start + 1,
+      Math.min(buf.length, Math.floor(((col + 1) * frames) / columns)),
+    );
     let lo = 0;
     let hi = 0;
     for (let i = start; i < end; i++) {
@@ -604,41 +623,9 @@ function drawWaveform() {
   const rect = tl.getBoundingClientRect();
   const w = Math.max(1, Math.round(rect.width));
   const h = Math.max(1, Math.round(rect.height));
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const pw = Math.max(1, Math.round(w * dpr));
-  const ph = Math.max(1, Math.round(h * dpr));
-  if (canvas.width !== pw || canvas.height !== ph) {
-    canvas.width = pw;
-    canvas.height = ph;
-  }
-  const g = canvas.getContext('2d');
-  if (!g) return;
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, w, h);
-  if (!(fileDuration() > 0)) {
-    state.filePeaks = null;
-    return;
-  }
-  if (!state.filePeaks || state.filePeaks.columns !== w) state.filePeaks = computeFilePeaks(w);
-  const peaks = state.filePeaks;
-  if (!peaks) return;
-  const mid = h / 2;
-  const amp = Math.max(1, mid - 3);
-  g.strokeStyle = 'rgba(227, 181, 107, 0.55)';
-  g.lineWidth = 1;
-  g.beginPath();
-  for (let x = 0; x < peaks.columns; x++) {
-    const top = mid - peaks.max[x] * amp;
-    const bottom = mid - peaks.min[x] * amp;
-    g.moveTo(x + 0.5, top);
-    g.lineTo(x + 0.5, Math.max(bottom, top + 0.8));
-  }
-  g.stroke();
-  g.strokeStyle = 'rgba(227, 181, 107, 0.14)';
-  g.beginPath();
-  g.moveTo(0, mid + 0.5);
-  g.lineTo(w, mid + 0.5);
-  g.stroke();
+  if (!(fileDuration() > 0)) state.filePeaks = null;
+  else if (!state.filePeaks || state.filePeaks.columns !== w) state.filePeaks = computeFilePeaks(w);
+  paintWaveform(canvas, state.filePeaks, w, h);
 }
 
 let waveformRedrawTimer = 0;
@@ -685,6 +672,7 @@ function updateFileTransport() {
   updatePlayButton();
   updateLoopUI();
   updateFileTimeUI();
+  backingControls?.render();
   renderStatusFromState();
 }
 
@@ -709,6 +697,7 @@ function setFilePosition(seconds) {
 }
 
 function stopSource() {
+  state.fileMix?.stop();
   state.filePlayGen++;
   const src = state.fileNode;
   state.fileNode = null;
@@ -756,6 +745,31 @@ function playFile(from = null) {
     off = clamp(off, 0, Math.max(0, dur - 0.001));
   }
   stopSource();
+  if (state.backing?.buffer) {
+    state.fileMix ||= new CommonTransport(state.ctx, {
+      voice: state.fileBuffer,
+      backing: state.backing.buffer,
+      vocalOutput: state.chain.input,
+      vocalGate: state.chain.audioParams.playback,
+      backingOutput: state.backing.output,
+      latencyFrames: state.chain.nominalLatencyFrames,
+      onEnded: () => {
+        state.playing = false;
+        state.fileTime = 0;
+        state.fileStartCtx = null;
+        updateFileTransport();
+        backingControls.render();
+      },
+    });
+    state.fileStartCtx = state.fileMix.play(off, state.loopOn);
+    state.playing = true;
+    state.fileTime = off;
+    state.fileStartPos = off;
+    updateFileTransport();
+    backingControls.render();
+    ensureTransportLoop();
+    return;
+  }
   const src = state.ctx.createBufferSource();
   src.buffer = state.fileBuffer;
   src.loop = !!state.loopOn;
@@ -796,6 +810,12 @@ function playFile(from = null) {
 function toggleLoop() {
   if (state.mode !== 'file' || !state.fileBuffer) return;
   state.loopOn = !state.loopOn;
+  const transition = state.fileMix?.setLoop(state.loopOn);
+  if (transition) {
+    state.fileTime = transition.offset;
+    state.fileStartPos = transition.offset;
+    state.fileStartCtx = transition.origin;
+  }
 
   if (state.fileNode) {
     try {
@@ -909,84 +929,6 @@ function loadFile() {
   $('file-name').textContent = state.fileName;
   renderModeUI();
   drawWaveform();
-}
-
-function createWavEncoder(audioBuffer) {
-  const channels = Math.min(2, audioBuffer.numberOfChannels);
-  const len = audioBuffer.length;
-  const sr = audioBuffer.sampleRate;
-  const bytes = 44 + len * channels * 2;
-  const view = new DataView(new ArrayBuffer(bytes));
-  const str = (off, s) => {
-    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
-  };
-  str(0, 'RIFF');
-  view.setUint32(4, bytes - 8, true);
-  str(8, 'WAVE');
-  str(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, channels, true);
-  view.setUint32(24, sr, true);
-  view.setUint32(28, sr * channels * 2, true);
-  view.setUint16(32, channels * 2, true);
-  view.setUint16(34, 16, true);
-  str(36, 'data');
-  view.setUint32(40, len * channels * 2, true);
-
-  const data = [];
-  for (let c = 0; c < channels; c++) data.push(audioBuffer.getChannelData(c));
-  return { view, data, channels, len, bytes };
-}
-
-function writePcmFrames(enc, from, to) {
-  const { view, data, channels } = enc;
-  let off = 44 + from * channels * 2;
-  for (let i = from; i < to; i++) {
-    for (let c = 0; c < channels; c++) {
-      const s = clamp(data[c][i], -1, 1);
-      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      off += 2;
-    }
-  }
-}
-
-function encodeWav(audioBuffer) {
-  const enc = createWavEncoder(audioBuffer);
-  writePcmFrames(enc, 0, enc.len);
-  return new Blob([enc.view.buffer], { type: 'audio/wav' });
-}
-
-const WAV_ENCODE_CHUNK_FRAMES = 16384;
-
-const yieldToUi = (() => {
-  if (typeof MessageChannel !== 'function') {
-    return () => new Promise((resolve) => setTimeout(resolve, 0));
-  }
-  const channel = new MessageChannel();
-  const queue = [];
-  channel.port1.onmessage = () => {
-    const resolve = queue.shift();
-    if (resolve) resolve();
-  };
-  return () =>
-    new Promise((resolve) => {
-      queue.push(resolve);
-      channel.port2.postMessage(0);
-    });
-})();
-
-async function encodeWavWithProgress(audioBuffer, onProgress) {
-  const enc = createWavEncoder(audioBuffer);
-  let done = 0;
-  while (done < enc.len) {
-    const end = Math.min(enc.len, done + WAV_ENCODE_CHUNK_FRAMES);
-    writePcmFrames(enc, done, end);
-    done = end;
-    onProgress(done / enc.len);
-    if (done < enc.len) await yieldToUi();
-  }
-  return new Blob([enc.view.buffer], { type: 'audio/wav' });
 }
 
 function download(blob, name) {
@@ -1144,19 +1086,35 @@ async function exportWav() {
       : msg('toast.exportRendering'),
   );
   let renderJob = null;
+  let mix = null;
+  backingControls.render();
   try {
-    const sr = state.ctx.sampleRate;
-    const tail = Math.floor(sr * 3);
-    const totalFrames = state.fileBuffer.length + tail;
-    const off = new OfflineAudioContext(2, totalFrames, sr);
-    const chain = await createVoiceChain(off, state.values, { offline: true });
-    const src = off.createBufferSource();
-    src.buffer = state.fileBuffer;
-    src.connect(chain.input);
-    src.start();
-    renderJob = renderOfflineWithProgress(off, totalFrames, setExportProgress);
-    state.exportProgress.slices = renderJob.slices;
-    const rendered = await renderJob.rendered;
+    let rendered;
+    if (state.backing?.buffer) {
+      mix = await createFileMix({
+        voice: state.fileBuffer,
+        backing: state.backing.buffer,
+        gainDb: state.backing.gainDb,
+        params: { ...state.values },
+        bypass: state.bypass,
+      });
+      renderJob = renderOfflineWithProgress(mix.context, mix.frames, setExportProgress);
+      state.exportProgress.slices = renderJob.slices;
+      rendered = mix.finish(await renderJob.rendered);
+    } else {
+      const sr = state.ctx.sampleRate;
+      const tail = Math.floor(sr * 3);
+      const totalFrames = state.fileBuffer.length + tail;
+      const off = new OfflineAudioContext(2, totalFrames, sr);
+      const chain = await createVoiceChain(off, state.values, { offline: true });
+      const src = off.createBufferSource();
+      src.buffer = state.fileBuffer;
+      src.connect(chain.input);
+      src.start();
+      renderJob = renderOfflineWithProgress(off, totalFrames, setExportProgress);
+      state.exportProgress.slices = renderJob.slices;
+      rendered = await renderJob.rendered;
+    }
 
     setExportProgress(1);
     const name = state.fileName.replace(/\.[^.]+$/, '') || 'take';
@@ -1169,14 +1127,21 @@ async function exportWav() {
     setStatus(msg('status.exportFailed'), 'warn');
     toast(msg('toast.exportFailed', { message: err.message }));
   } finally {
+    mix?.dispose();
     state.exporting = false;
+    backingControls.render();
   }
 }
 
 const REC_DISCARD_NOTE = 'bc.recDiscardNote';
 
+function backingLocked() {
+  return state.rec.state !== 'idle' || state.rec.preparing || state.exporting;
+}
+
 function recordedSeconds() {
   const rec = state.rec;
+  if (rec.pcmTake) return rec.pcmTake.seconds();
   const running =
     rec.state === 'recording' && rec.segmentStart > 0 ? performance.now() - rec.segmentStart : 0;
   return (rec.recordedMs + running) / 1000;
@@ -1189,6 +1154,7 @@ function setRecState(next) {
 
   if (changed && next !== 'pending') resetProgress('save');
   renderRecUI();
+  backingControls?.render();
 }
 
 function renderRecUI() {
@@ -1272,6 +1238,10 @@ function discardTake(reason = '', { silent = false } = {}) {
   const rec = state.rec;
   const hadTake = rec.state !== 'idle';
   rec.gen++;
+  rec.pcmTake?.discard();
+  rec.pcmTake = null;
+  rec.pcmBuffer = null;
+  rec.preparing = false;
   stopRecTimer();
   const mr = rec.recorder;
   rec.recorder = null;
@@ -1319,9 +1289,87 @@ function finalizeTake(gen, mr) {
   toast(msg('toast.recDone', { seconds: rec.elapsed.toFixed(1) }));
 }
 
+async function startBackingRecording() {
+  const rec = state.rec;
+  if (rec.preparing || rec.saving || state.backing.busy) return;
+  rec.preparing = true;
+  setRecBusy(true);
+  backingControls.render();
+  const gen = ++rec.gen;
+  try {
+    const take = await createBackingTake(
+      state.ctx,
+      state.chain,
+      state.backing,
+      Number($('backing-alignment').value),
+    );
+    if (rec.gen !== gen || !state.micOn || state.mode !== 'mic') {
+      take.discard();
+      return;
+    }
+    rec.pcmTake = take;
+    rec.pcmBuffer = null;
+    rec.blob = null;
+    rec.elapsed = 0;
+    take.start();
+    setRecState('recording');
+    startRecTimer();
+  } catch (error) {
+    if (rec.gen === gen) {
+      discardTake();
+      toast(msg('toast.recStartFailed', { message: error.message }));
+    }
+  } finally {
+    if (rec.gen === gen) {
+      rec.preparing = false;
+      setRecBusy(false);
+      backingControls.render();
+    }
+  }
+}
+
+async function changeBackingRecording(action) {
+  const rec = state.rec;
+  if (rec.preparing) return;
+  rec.preparing = true;
+  setRecBusy(true);
+  const gen = rec.gen;
+  stopRecTimer();
+  try {
+    if (action === 'pause') {
+      await rec.pcmTake.pause();
+      if (rec.gen !== gen) return;
+      rec.elapsed = recordedSeconds();
+      setRecState('paused');
+    } else if (action === 'resume') {
+      rec.pcmTake.resume();
+      setRecState('recording');
+      startRecTimer();
+    } else {
+      const buffer = await rec.pcmTake.stop();
+      if (rec.gen !== gen) return;
+      rec.pcmBuffer = buffer;
+      rec.elapsed = buffer.duration;
+      setRecState('pending');
+      toast(msg('toast.recDone', { seconds: rec.elapsed.toFixed(1) }));
+    }
+  } catch (error) {
+    if (rec.gen === gen) {
+      discardTake();
+      toast(msg('toast.recStopFailed', { message: error.message }));
+    }
+  } finally {
+    if (rec.gen === gen) {
+      rec.preparing = false;
+      setRecBusy(false);
+      backingControls.render();
+    }
+  }
+}
+
 function startRecording() {
   const rec = state.rec;
-  if (!state.chain) return;
+  if (!state.chain || rec.preparing || rec.saving || state.exporting || state.backing?.busy) return;
 
   if (!state.micOn) {
     toast(msg('toast.recMicFirst'));
@@ -1329,6 +1377,10 @@ function startRecording() {
   }
   if (rec.state === 'pending') discardTake('reason.rerecord');
   if (rec.state === 'recording' || rec.state === 'paused') return;
+  if (state.backing?.buffer) {
+    startBackingRecording();
+    return;
+  }
 
   const dest = state.ctx.createMediaStreamDestination();
   state.chain.output.connect(dest);
@@ -1393,6 +1445,10 @@ function startRecTimer() {
 
 function pauseRecording() {
   const rec = state.rec;
+  if (rec.pcmTake && rec.state === 'recording') {
+    changeBackingRecording('pause');
+    return;
+  }
   if (rec.state !== 'recording' || !rec.recorder) return;
   const elapsedMs = performance.now() - rec.segmentStart;
   rec.recordedMs += elapsedMs;
@@ -1414,6 +1470,10 @@ function pauseRecording() {
 
 function resumeRecording() {
   const rec = state.rec;
+  if (rec.pcmTake && rec.state === 'paused') {
+    changeBackingRecording('resume');
+    return;
+  }
   if (rec.state !== 'paused' || !rec.recorder) return;
   try {
     rec.recorder.resume();
@@ -1429,6 +1489,10 @@ function resumeRecording() {
 
 function stopRecording() {
   const rec = state.rec;
+  if (rec.pcmTake && ['recording', 'paused'].includes(rec.state)) {
+    changeBackingRecording('stop');
+    return;
+  }
   const live = rec.state === 'recording' || rec.state === 'paused';
   if (!live || !rec.recorder) return;
   if (rec.state === 'recording' && rec.segmentStart > 0) {
@@ -1451,31 +1515,35 @@ function stopRecording() {
 
 async function saveTake() {
   const rec = state.rec;
-  if (rec.state !== 'pending' || !rec.blob || rec.saving) return;
+  if (rec.state !== 'pending' || (!rec.blob && !rec.pcmBuffer) || rec.saving) return;
+  const generation = rec.gen;
   rec.saving = true;
   setRecBusy(true);
-  const blob = rec.blob;
+  const blob = rec.pcmBuffer || rec.blob;
   const progress = { value: 0, history: [], phases: ['decode'], phase: 'decode', failed: false };
   state.recSaveProgress = progress;
 
   setProgressIndeterminate('save', msg('progress.decoding'));
   try {
-    const buf = await state.ctx.decodeAudioData(await blob.arrayBuffer());
+    const buf = rec.pcmBuffer || (await state.ctx.decodeAudioData(await blob.arrayBuffer()));
 
-    if (rec.state !== 'pending' || rec.blob !== blob) return;
+    if (rec.state !== 'pending' || (rec.pcmBuffer || rec.blob) !== blob) return;
     progress.phase = 'encode';
     progress.phases.push('encode');
     setProgressValue('save', 0);
 
     const wav = await encodeWavWithProgress(buf, (fraction) => {
-      if (rec.state === 'pending' && rec.blob === blob) setProgressValue('save', fraction);
+      if (rec.state === 'pending' && (rec.pcmBuffer || rec.blob) === blob)
+        setProgressValue('save', fraction);
     });
-    if (rec.state !== 'pending' || rec.blob !== blob) return;
+    if (rec.state !== 'pending' || (rec.pcmBuffer || rec.blob) !== blob) return;
     setProgressValue('save', 1);
     progress.phase = 'done';
     progress.phases.push('done');
     download(wav, `belcanto-take-${Date.now()}.wav`);
     rec.blob = null;
+    rec.pcmBuffer = null;
+    rec.pcmTake = null;
     rec.elapsed = 0;
     setRecState('idle');
     toast(msg('toast.recSaved'));
@@ -1485,13 +1553,16 @@ async function saveTake() {
     progress.phase = 'error';
     progress.phases.push('error');
 
-    if (rec.state === 'pending' && rec.blob === blob) {
+    if (rec.state === 'pending' && (rec.pcmBuffer || rec.blob) === blob) {
       setProgressFailed('save', msg('progress.saveFailed'));
       setRecBusy(false);
       toast(msg('toast.recSaveFailed', { message: err.message || msg('error.recordDecode') }));
     }
   } finally {
-    rec.saving = false;
+    if (rec.gen === generation) {
+      rec.saving = false;
+      backingControls.render();
+    }
   }
 }
 
@@ -1748,6 +1819,45 @@ function init() {
   state.slots = { A: { ...state.values }, B: { ...state.values } };
   buildPanels();
   buildPresets();
+  backingControls = createBackingControls({
+    ensureAudio,
+    getTrack: () => state.backing,
+    notify: toast,
+    locked: backingLocked,
+    onChange() {
+      if (state.playing) pauseFile();
+      state.fileMix = null;
+      state.chain?.setBackingActive(!!state.backing.buffer, state.backing.alignmentFrames);
+      state.filePeaks = null;
+      renderModeUI();
+      drawWaveform();
+      backingControls.render();
+    },
+    transport: () =>
+      state.mode === 'file'
+        ? { playing: state.playing, position: filePosition(), duration: fileDuration() }
+        : {
+            playing: !!state.backing?.playing,
+            position: state.backing?.position() || 0,
+            duration: state.backing?.buffer?.duration || 0,
+          },
+    async onPlay() {
+      await ensureAudio();
+      if (state.mode === 'file') {
+        if (state.playing) pauseFile();
+        else playFile();
+      } else if (state.backing.playing) state.backing.pause();
+      else
+        state.backing.play(
+          undefined,
+          state.backing.position() >= state.backing.buffer.duration ? 0 : state.backing.position(),
+        );
+    },
+    onSeek(position) {
+      if (state.mode === 'file') seekFile(position);
+      else state.backing?.seek(position);
+    },
+  });
   bindEvents();
   setRecState('idle');
   notifyDiscardedTake();
