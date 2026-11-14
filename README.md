@@ -60,18 +60,18 @@ Real-time playback and offline export use the same audio-chain implementation an
 
 The output is stereo, 16-bit PCM WAV at the current AudioContext sample rate. Muting speaker monitoring does not mute recordings or exported files.
 
-## Run locally
+## Local development
 
 Local development requires Node.js 22.13.0 or a later 22.x release, or Node.js 24 or later.
 
-Clone the repository, then run:
+To run the source code on your own computer, clone this repository, then run:
 
 ```bash
 npm ci
 npm start
 ```
 
-Open [http://127.0.0.1:5188](http://127.0.0.1:5188).
+After the server starts, open `http://127.0.0.1:5188` in your browser. This address is local to your computer.
 
 Use the local server instead of opening `index.html` directly. The application requires an HTTP context for its audio worklets.
 
