@@ -22,6 +22,7 @@ export function createBackingControls({
       <div class="backing-transport">
         <button class="btn small" id="backing-load">${msg('backing.load')}</button>
         <button class="btn small" id="backing-play" aria-pressed="false" disabled>${msg('backing.play')}</button>
+        <button class="btn small" id="backing-reset" disabled>${msg('backing.reset')}</button>
         <button class="btn small" id="backing-remove" disabled>${msg('backing.remove')}</button>
       </div>
       <div class="backing-progress">
@@ -35,7 +36,6 @@ export function createBackingControls({
     </div>
     <div class="backing-settings">
       <div class="backing-knobs" id="backing-knobs"></div>
-      <button class="btn small" id="backing-reset" disabled>${msg('backing.reset')}</button>
     </div>
     <details class="backing-recording">
       <summary>${msg('backing.recordingAlignment')}</summary>
@@ -56,12 +56,25 @@ export function createBackingControls({
   const makeKnob = (id, label, min, max, value, format, change) => {
     const knob = new Knob(
       `backing-${id}`,
-      { label, min, max, step: 1, def: value, bipolar: true, format },
+      {
+        label,
+        min,
+        max,
+        step: 1,
+        def: value,
+        bipolar: true,
+        format,
+        accessibleName: 'Backing ' + label,
+        description:
+          id === 'gain'
+            ? 'Adjust the backing track level independently of the voice.'
+            : 'Shift the backing track’s key without changing its tempo.',
+      },
       value,
       (_, next) => change(next),
       { nativeInput: true },
     );
-    get('knobs').appendChild(knob.el);
+    get('knobs').appendChild(knob.container);
     return knob;
   };
   const gain = makeKnob(

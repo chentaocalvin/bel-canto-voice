@@ -58,7 +58,7 @@ body::before {
   z-index: 1;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 26px 26px 34px;
+  padding: 8px 26px;
 }
 
 .topbar {
@@ -313,7 +313,7 @@ body::before {
 
 .screen {
   position: relative;
-  height: 196px;
+  height: 150px;
   border-radius: 16px;
   border: 1px solid var(--line);
   background:
@@ -362,8 +362,8 @@ body::before {
 .display-side {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: 196px;
+  gap: 6px;
+  height: 150px;
 }
 
 .note {
@@ -371,7 +371,7 @@ body::before {
   border-radius: 16px;
   flex: 0 0 auto;
   background: linear-gradient(180deg, var(--panel-hi), var(--panel));
-  padding: 12px 14px 10px;
+  padding: 6px 14px 5px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   text-align: center;
 }
@@ -402,7 +402,7 @@ body::before {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: linear-gradient(180deg, var(--panel-hi), var(--panel));
-  padding: 10px 12px;
+  padding: 5px 12px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -410,7 +410,7 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .meter-col > span {
@@ -422,7 +422,7 @@ body::before {
 .meter {
   flex: 1;
   width: 17px;
-  min-height: 60px;
+  min-height: 25px;
   border-radius: 4px;
   background: #090a0c;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -445,9 +445,9 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  padding: 9px 14px;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 7px 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(20, 22, 26, 0.72);
@@ -686,14 +686,14 @@ body::before {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .panel {
   position: relative;
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 15px 12px 10px;
+  padding: 11px 12px 7px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 26%),
     linear-gradient(180deg, #1a1d23, #121418);
@@ -707,7 +707,7 @@ body::before {
   position: absolute;
   left: 16px;
   right: 16px;
-  top: 38px;
+  top: 33px;
   height: 1px;
   background: linear-gradient(90deg, rgba(227, 181, 107, 0.5), rgba(227, 181, 107, 0.04));
 }
@@ -730,8 +730,8 @@ body::before {
 .knobs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 2px;
-  margin-top: 16px;
+  gap: 0 2px;
+  margin-top: 10px;
 }
 
 .knob {
@@ -756,9 +756,9 @@ body::before {
 }
 
 .knob-name {
-  font-size: 8.5px;
-  letter-spacing: 0.17em;
-  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  color: #c9c5bc;
   text-transform: uppercase;
 }
 
@@ -824,7 +824,7 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 14px;
+  margin-top: 8px;
   padding: 0 4px;
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -1039,8 +1039,8 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 8px;
-  padding: 10px 6px 2px;
+  margin-top: 4px;
+  padding: 6px 6px 2px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -1163,7 +1163,7 @@ body::before {
 .tuner {
   position: relative;
   height: 13px;
-  margin: 9px 2px 0;
+  margin: 5px 2px 0;
   border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background:
@@ -1247,17 +1247,13 @@ body::before {
   text-shadow: none;
 }
 
-.note {
-  padding-bottom: 11px;
-}
-
 .topbar {
-  padding-bottom: 15px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.045);
 }
 
 .display {
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 .knob-cap {
@@ -1425,17 +1421,17 @@ body::before {
 .backing-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px 24px;
+  gap: 8px 24px;
   width: 100%;
   min-width: 0;
   border-top: 1px solid var(--line);
-  padding-top: 16px;
+  padding-top: 10px;
   font-size: 11px;
 }
 .backing-controls .backing-main {
   display: grid;
   align-content: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 .backing-controls .backing-heading,
@@ -1490,7 +1486,7 @@ body::before {
   order: 0;
   flex: 1 1 0;
   min-width: 0;
-  height: 44px;
+  height: 32px;
 }
 .backing-controls .backing-timeline:focus-within {
   border-color: var(--gold);
@@ -1516,7 +1512,7 @@ body::before {
 .backing-controls .backing-recording {
   grid-column: 1 / -1;
   border-top: 1px solid var(--line);
-  padding-top: 10px;
+  padding-top: 6px;
   color: var(--text);
 }
 .backing-controls .backing-recording summary {
@@ -1600,4 +1596,76 @@ body::before {
 }
 .knob[aria-disabled='true'] .knob-input {
   cursor: default;
+}
+
+.knob-control {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.control-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #c9c5bc;
+  cursor: help;
+  font: inherit;
+  line-height: 1.4;
+}
+.control-help .knob-name {
+  overflow-wrap: normal;
+}
+.help-icon {
+  display: inline-flex;
+  flex: 0 0 14px;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #7c7569;
+  border-radius: 50%;
+  font: 10px/1 sans-serif;
+  color: #c9c5bc;
+}
+.control-help:hover {
+  background: rgba(227, 181, 107, 0.07);
+}
+.control-help:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.control-help-text {
+  position: fixed;
+  z-index: 100;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border: 1px solid #75634a;
+  border-radius: 8px;
+  background: #202226;
+  color: #ece8df;
+  box-shadow: 0 6px 22px #0008;
+  font: 12px/1.5 var(--font-ui, sans-serif);
+  letter-spacing: normal;
+}
+.control-help-text[hidden] {
+  display: none;
+}
+.switch-row .control-help {
+  justify-content: flex-start;
+  text-align: left;
+}
+.backing-controls .backing-knobs .knob-control {
+  width: 100px;
+}
+
+.backing-controls .backing-knobs .knob {
+  align-self: center;
 }

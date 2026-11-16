@@ -4,7 +4,8 @@ const signed = (v, d = 1, unit = '') =>
 
 export const PARAMS = {
   pitch: {
-    label: 'PITCH',
+    label: 'Pitch',
+    description: 'Shift the voice up or down in semitones.',
     min: -12,
     max: 12,
     step: 0.1,
@@ -13,7 +14,8 @@ export const PARAMS = {
     format: (v) => signed(v, 1, 'st'),
   },
   formant: {
-    label: 'FORMANT',
+    label: 'Formant',
+    description: 'Shift the voice’s formants to change its timbre without changing pitch.',
     min: -12,
     max: 12,
     step: 0.1,
@@ -22,7 +24,8 @@ export const PARAMS = {
     format: (v) => signed(v, 1, 'st'),
   },
   vibRate: {
-    label: 'VIBRATO',
+    label: 'Vibrato Rate',
+    description: 'Set how quickly the pitch oscillates.',
     min: 3,
     max: 8,
     step: 0.05,
@@ -30,7 +33,8 @@ export const PARAMS = {
     format: (v) => `${v.toFixed(2)} Hz`,
   },
   vibDepth: {
-    label: 'DEPTH',
+    label: 'Vibrato Depth',
+    description: 'Set the amount of added pitch variation.',
     min: 0,
     max: 80,
     step: 0.5,
@@ -38,7 +42,8 @@ export const PARAMS = {
     format: (v) => `${v.toFixed(0)} ct`,
   },
   warmth: {
-    label: 'WARMTH',
+    label: 'Warmth',
+    description: 'Adjust low frequencies for a warmer or leaner vocal sound.',
     min: -6,
     max: 9,
     step: 0.1,
@@ -47,7 +52,8 @@ export const PARAMS = {
     format: (v) => signed(v, 1, 'dB'),
   },
   ring: {
-    label: 'RING',
+    label: 'Vocal Ring',
+    description: 'Boost the voice’s bright, ringing quality.',
     min: 0,
     max: 12,
     step: 0.1,
@@ -55,7 +61,8 @@ export const PARAMS = {
     format: (v) => `${v.toFixed(1)} dB`,
   },
   smooth: {
-    label: 'SMOOTH',
+    label: 'Smooth',
+    description: 'Reduce upper-frequency harshness with a fixed EQ cut.',
     min: 0,
     max: 10,
     step: 0.1,
@@ -63,7 +70,8 @@ export const PARAMS = {
     format: (v) => `-${v.toFixed(1)} dB`,
   },
   air: {
-    label: 'AIR',
+    label: 'Air',
+    description: 'Adjust high frequencies for a brighter or softer top end.',
     min: -6,
     max: 9,
     step: 0.1,
@@ -72,7 +80,8 @@ export const PARAMS = {
     format: (v) => signed(v, 1, 'dB'),
   },
   drive: {
-    label: 'DRIVE',
+    label: 'Drive',
+    description: 'Add saturation to give the voice a more driven tone.',
     min: 0,
     max: 1,
     step: 0.005,
@@ -80,7 +89,8 @@ export const PARAMS = {
     format: pct,
   },
   comp: {
-    label: 'COMP',
+    label: 'Compression',
+    description: 'Reduce level differences between louder and quieter passages.',
     min: 0,
     max: 1,
     step: 0.005,
@@ -88,7 +98,8 @@ export const PARAMS = {
     format: pct,
   },
   input: {
-    label: 'INPUT',
+    label: 'Input Gain',
+    description: 'Adjust the vocal level before processing.',
     min: -24,
     max: 24,
     step: 0.2,
@@ -97,7 +108,8 @@ export const PARAMS = {
     format: (v) => signed(v, 1, 'dB'),
   },
   out: {
-    label: 'OUTPUT',
+    label: 'Output Gain',
+    description: 'Adjust the vocal output level without changing the backing track.',
     min: -24,
     max: 12,
     step: 0.2,
@@ -106,7 +118,8 @@ export const PARAMS = {
     format: (v) => signed(v, 1, 'dB'),
   },
   size: {
-    label: 'SIZE',
+    label: 'Reverb Size',
+    description: 'Shape the reverb’s decay and early reflections.',
     min: 0,
     max: 1,
     step: 0.005,
@@ -114,7 +127,8 @@ export const PARAMS = {
     format: pct,
   },
   mix: {
-    label: 'REVERB',
+    label: 'Reverb',
+    description: 'Adjust how much reverberation is added to the voice.',
     min: 0,
     max: 1,
     step: 0.005,
@@ -122,7 +136,8 @@ export const PARAMS = {
     format: pct,
   },
   chorus: {
-    label: 'CHORUS',
+    label: 'Chorus',
+    description: 'Blend in modulated copies of the voice for a layered sound.',
     min: 0,
     max: 1,
     step: 0.005,
@@ -130,7 +145,8 @@ export const PARAMS = {
     format: pct,
   },
   width: {
-    label: 'WIDTH',
+    label: 'Chorus Width',
+    description: 'Adjust the left–right spread of the chorus effect.',
     min: 0,
     max: 1,
     step: 0.005,

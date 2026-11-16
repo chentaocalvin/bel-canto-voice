@@ -1,3 +1,5 @@
+import { createControlHelp } from './control-help.js';
+
 const CX = 40;
 const CY = 40;
 const R = 30;
@@ -48,7 +50,6 @@ export class Knob {
     el.tabIndex = 0;
     el.setAttribute('role', 'slider');
     el.innerHTML = `
-      <span class="knob-name">${def.label}</span>
       <div class="knob-dial">
         <svg viewBox="0 0 80 80" aria-hidden="true">
           <g class="knob-ticks">${tickMarks()}</g>
@@ -84,9 +85,17 @@ export class Knob {
       el.appendChild(input);
       this.input = input;
     }
+    const control = this.input || this.el;
+    const accessibleName = def.accessibleName || def.label;
+    this.container = document.createElement('div');
+    this.container.className = 'knob-control';
+    this.container.append(
+      createControlHelp(id, def.label, def.description, control, accessibleName),
+      el,
+    );
     this._bindPointer();
     this._bindKeyboard();
-    (this.input || this.el).setAttribute('aria-label', this.def.label);
+    control.setAttribute('aria-label', accessibleName);
     this.setValue(value, true);
   }
 
