@@ -125,7 +125,7 @@ process.exitCode = await withBrowser(
     bootMic: text('boot-mic'),
     bootFile: text('boot-file'),
     status: text('status-text'),
-    knobNames: [...document.querySelectorAll('#panels .knob-name')].map((e) => e.textContent),
+    knobNames: [...document.querySelectorAll('#panels .knob-control .knob-name')].map((e) => e.textContent),
     knobCnCount: document.querySelectorAll('.knob-cn').length,
     panelCjk: cjk.test(document.getElementById('panels').textContent),
     statusbarCjk: cjk.test(document.querySelector('.statusbar').textContent),
@@ -171,9 +171,9 @@ process.exitCode = await withBrowser(
     c.add(
       '旋钮只有英文主标签，中文副标题节点已移除',
       english.knobNames.length === 16 &&
-        english.knobNames.every((n) => /^[A-Z]+$/.test(n)) &&
+        english.knobNames.every((n) => /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(n)) &&
         english.knobCnCount === 0,
-      { knobNames: 16, allUpperEnglish: true, cnNodes: 0 },
+      { knobNames: 16, englishLabels: true, cnNodes: 0 },
       { knobNames: english.knobNames, cnNodes: english.knobCnCount },
     );
     c.add(

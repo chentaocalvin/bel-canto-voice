@@ -1,3 +1,4 @@
+import { createControlHelp } from './ui/control-help.js';
 import { formatTime, paintWaveform } from './ui/timeline.js';
 import { createBackingTake } from './audio/backing-take.js';
 import { createFileMix } from './audio/file-mix.js';
@@ -113,7 +114,7 @@ function buildPanels() {
       const def = PARAMS[id];
       const knob = new Knob(id, def, state.values[id], onKnobChange);
       state.knobs[id] = knob;
-      grid.appendChild(knob.el);
+      grid.appendChild(knob.container);
     }
     section.appendChild(grid);
 
@@ -121,9 +122,16 @@ function buildPanels() {
       const row = document.createElement('div');
       row.className = 'switch-row';
       row.innerHTML = `
-        <span class="switch-label">PRESERVE</span>
         <button class="switch" id="preserve" role="switch" aria-checked="true"
           aria-label="Preserve formants"><i></i></button>`;
+      row.prepend(
+        createControlHelp(
+          'preserve',
+          'Preserve Formants',
+          'Keep the formant setting independent when changing pitch.',
+          row.querySelector('button'),
+        ),
+      );
       section.appendChild(row);
     }
 

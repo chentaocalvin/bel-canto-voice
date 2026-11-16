@@ -76,7 +76,9 @@
     "vendor/signalsmith-stretch/LICENSE-emscripten.txt",
     "vendor/signalsmith-stretch/LICENSE-linear.txt",
     "vendor/signalsmith-stretch/LICENSE.txt",
-    "vendor/signalsmith-stretch/SignalsmithStretch.mjs"
+    "vendor/signalsmith-stretch/SignalsmithStretch.mjs",
+    "src/ui/control-help.js",
+    "tools/control-help-test.mjs"
   ],
   "site": [
     ".nojekyll",
@@ -109,6 +111,7 @@
     "vendor/signalsmith-stretch/LICENSE-emscripten.txt",
     "vendor/signalsmith-stretch/LICENSE-linear.txt",
     "vendor/signalsmith-stretch/LICENSE.txt",
-    "vendor/signalsmith-stretch/SignalsmithStretch.mjs"
+    "vendor/signalsmith-stretch/SignalsmithStretch.mjs",
+    "src/ui/control-help.js"
   ]
 }
